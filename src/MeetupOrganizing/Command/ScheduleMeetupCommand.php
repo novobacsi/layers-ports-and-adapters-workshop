@@ -4,7 +4,8 @@ declare(strict_types=1);
 namespace MeetupOrganizing\Command;
 
 use Assert\Assert;
-use Doctrine\DBAL\Connection;
+use MeetupOrganizing\Entity\CreateMeetupCommand;
+use MeetupOrganizing\Service\ScheduleMeetUpService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -12,13 +13,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 final class ScheduleMeetupCommand extends Command
 {
-    private Connection $connection;
+    private ScheduleMeetUpService $service;
 
-    public function __construct(Connection $connection)
+    public function __construct(ScheduleMeetUpService $service)
     {
         parent::__construct();
 
-        $this->connection = $connection;
+        $this->service = $service;
     }
 
     protected function configure(): void
@@ -47,15 +48,14 @@ final class ScheduleMeetupCommand extends Command
         $scheduledFor = $input->getArgument('scheduledFor');
         Assert::that($scheduledFor)->string();
 
-        $record = [
-            'organizerId' => (int)$organizerId,
-            'name' => $name,
-            'description' => $description,
-            'scheduledFor' => $scheduledFor
-        ];
 
-        $this->connection->insert('meetups', $record);
-
+        $createCommand = new CreateMeetupCommand(
+            (int)$organizerId,
+            $name,
+            $description,
+            $scheduledFor
+        );
+        $this->service->save($createCommand);
         $output->writeln('<info>Scheduled the meetup successfully</info>');
 
         return 0;

@@ -14,16 +14,18 @@ use MeetupOrganizing\Controller\MeetupDetailsController;
 use MeetupOrganizing\Controller\RsvpForMeetupController;
 use MeetupOrganizing\Controller\ScheduleMeetupController;
 use MeetupOrganizing\Controller\SwitchUserController;
+use MeetupOrganizing\Entity\MeetupRepository;
 use MeetupOrganizing\Entity\RsvpRepository;
 use MeetupOrganizing\Entity\UserRepository;
 use MeetupOrganizing\Resources\Views\FlashExtension;
 use MeetupOrganizing\Resources\Views\TwigTemplates;
 use MeetupOrganizing\Resources\Views\UserExtension;
+use MeetupOrganizing\Service\ScheduleMeetUpService;
 use Psr\Http\Message\RequestInterface;
-use Symfony\Component\ErrorHandler\Debug;
-use Xtreamwayz\Pimple\Container;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\ErrorHandler\Debug;
 use Throwable;
+use Xtreamwayz\Pimple\Container;
 use Zend\Expressive\Application;
 use Zend\Expressive\Container\ApplicationFactory;
 use Zend\Expressive\Helper\ServerUrlHelper;
@@ -179,6 +181,11 @@ final class ServiceContainer extends Container
                 $this[Connection::class]
             );
         };
+        $this[MeetupRepository::class] = function () {
+            return new MeetupRepository(
+                $this[Connection::class]
+            );
+        };
 
         /*
          * Controllers
@@ -194,7 +201,7 @@ final class ServiceContainer extends Container
                 $this[Session::class],
                 $this[TemplateRendererInterface::class],
                 $this[RouterInterface::class],
-                $this[Connection::class]
+                $this[ScheduleMeetUpService::class]
             );
         };
         $this[CancelMeetupController::class] = function () {
@@ -206,7 +213,7 @@ final class ServiceContainer extends Container
         };
         $this[ListMeetupsController::class] = function () {
             return new ListMeetupsController(
-                $this[Connection::class],
+                $this[MeetupRepository::class],
                 $this[TemplateRendererInterface::class]
             );
         };
@@ -234,6 +241,13 @@ final class ServiceContainer extends Container
         };
 
         /*
+         * Services
+         */
+        $this[ScheduleMeetUpService::class] = function () {
+            return new ScheduleMeetUpService($this[MeetupRepository::class]);
+        };
+
+        /*
          * CLI
          */
         $this[ConsoleApplication::class] = function () {
@@ -241,7 +255,7 @@ final class ServiceContainer extends Container
         };
 
         $this[ScheduleMeetupCommand::class] = function () {
-            return new ScheduleMeetupCommand($this[Connection::class]);
+            return new ScheduleMeetupCommand($this[ScheduleMeetUpService::class]);
         };
 
         $this->bootstrap();
